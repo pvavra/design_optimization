@@ -15,6 +15,7 @@ for i = 1:length(onsets)
         index_start = find(time == onsets(i));        
         assert(length(index_start) == 1);
     else
+        mindiff
         error('not implemented yet :/');
     end
     

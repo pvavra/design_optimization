@@ -2,10 +2,15 @@ ExpandPath();
 
 n = length(listEff);
 
+nPerFig = 5;
+
+nCols = 3;
 for  i=1:n
-   figure(i)
-   clf
-   ax = subplot(221);
+    fprintf('ceil: %g, mod: %g\n',ceil(i/nPerFig), mod(i-1,nPerFig))
+   figure(ceil(i/nPerFig))
+   % summary on efficiencies
+   ax = subplot(nPerFig,3,1 + mod(i-1,nPerFig)*nCols ); cla
+   
    title_text = '';
    currentEffs = listEff{i};
    for iC = 1:numel(listC_names)
@@ -15,13 +20,16 @@ for  i=1:n
    text(0.5,0.5,title_text)
    set(ax,'visible','off');
    
-   
-   subplot(223)
+   % design: trial type
+   subplot(nPerFig,3,2 + mod(i-1,nPerFig)*nCols)
+   cla
    imagesc(listIsTone1kHz{i}')
    colormap('gray')
 
-   subplot(224)
+   % design: ISI 
+   subplot(nPerFig,3,3 + mod(i-1,nPerFig)*nCols)
+   cla
    plot(listDurationAftershock{i})
    
 end
-tilefigs([], 10)
+% tilefigs([], 10)

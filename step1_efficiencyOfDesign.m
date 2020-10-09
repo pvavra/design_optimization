@@ -6,7 +6,7 @@ nSims = 10;
 
 %% Scanner settings
 TR = 1;
-microtime = 30;
+microtime = 340;
 
 % all timings are in seconds
 t_start = 117; % baseline_before_first_trial
@@ -46,7 +46,7 @@ nPresentations_perTone = 10;
 nTones = 2 * nPresentations_perTone ;
 
 %% Define contrast(s) of interest
-C_all_equal = eye(size(X,2));
+C_all_equal = eye(6);
 C_tones = [1 -1 0 0 0 0]; % difference in tones
 C_traces = [0 0 1 -1 0 0];
 C_shocks = [0 0 0 0 -1 0];
@@ -54,15 +54,15 @@ C_shocks = [0 0 0 0 -1 0];
 listC_names = {'mean','tones','traces','shocks'};
 listC = {C_all_equal, C_tones, C_traces, C_shocks};
 
-
-
-
 toc
-
 
 tic
 nTones = 2 * nPresentations_perTone;
 t = -1 + 1:(TR/microtime):(nScans*TR); t = t(1:(nScans * microtime));
+
+min_aftershock = 5; 
+lambda = 1.5; T = 3; % from Mumford et al., 2014
+
 for iSim = nSims:-1:1
     
     % decide which stimulus should have which frequency:
@@ -76,10 +76,14 @@ for iSim = nSims:-1:1
     listIsTone1kHz{iSim} = isTone1kHz;
     
     
+    
     if iSim == 1
         duration_aftershock = repmat(30,size(isTone1kHz));
     else
-        duration_aftershock = repmat(1,size(isTone1kHz));
+        duration_aftershock = rExponential(length(isTone1kHz),...
+            lambda,T, min_aftershock);
+        % round jitter to nearest microtime
+        duration_aftershock = round(duration_aftershock * microtime/TR)*TR/microtime;
     end
     listDurationAftershock{iSim} = duration_aftershock;
     % if 0, then tone == 15kHz; if 1, then 1kHz
