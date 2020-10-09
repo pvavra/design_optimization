@@ -3,6 +3,6 @@ function samples = rExponential(n, lambda)
 % rate lambda
 
 s = rand(1,n);
-samples = -log(s+1);
+samples = lambda*(-log(s) + log(-lambda));
 end
 

@@ -14,7 +14,7 @@ t_start = 117; % baseline_before_first_trial
 nScans = 1220; % 30 * (60 / TR);  % first nr is in minutes
 
 % HRF double-gamma parameters used by SPM
-P = [6 16 1 1 6 0 32];
+P = [6 16 1 1 6 0 32]; 
 
 
 %% define prewhitening and high-pass filter matrices
@@ -45,50 +45,36 @@ nPresentations_perTone = 10;
 
 nTones = 2 * nPresentations_perTone ;
 
-%% Define contrast(s) of interest
-C_all_equal = eye(size(X,2));
-C_tones = [1 -1 0 0 0 0]; % difference in tones
-C_traces = [0 0 1 -1 0 0];
-C_shocks = [0 0 0 0 -1 0];
-% store names of contrast
-listC_names = {'mean','tones','traces','shocks'};
-listC = {C_all_equal, C_tones, C_traces, C_shocks};
-
-
-
 
 toc
-
-
 tic
 nTones = 2 * nPresentations_perTone;
 t = -1 + 1:(TR/microtime):(nScans*TR); t = t(1:(nScans * microtime));
 for iSim = nSims:-1:1
+     
+    if iSim == 1
+        duration_aftershock = 30; 
+    else
+        duration_aftershock = 4; 
+    end
+    listDurationAftershock{iSim} = duration_aftershock;
+    % if 0, then tone == 15kHz; if 1, then 1kHz
     
-    % decide which stimulus should have which frequency:
     isTone1kHz = ones(1,nPresentations_perTone*2);
     isTone1kHz(1:2:end) = 0; % alternating
-    isTone1kHz = logical(isTone1kHz);
+    isTone1kHz = logical(isTone1kHz); 
     if iSim > 1 % keep first iteration == original design
         % shuffle order randomly
         isTone1kHz = isTone1kHz(randperm(length(isTone1kHz)));
     end
+    
     listIsTone1kHz{iSim} = isTone1kHz;
-    
-    
-    if iSim == 1
-        duration_aftershock = repmat(30,size(isTone1kHz));
-    else
-        duration_aftershock = repmat(1,size(isTone1kHz));
-    end
-    listDurationAftershock{iSim} = duration_aftershock;
-    % if 0, then tone == 15kHz; if 1, then 1kHz
     
     
     ISI = duration_tone + duration_trace + duration_shock + duration_aftershock;
     listISI{iSim} = ISI;
     
-    ISIcummulative = ISI .* (0:((nPresentations_perTone-1)*2+1));
+    ISIcummulative = ISI .* (0:((nPresentations_perTone-1)*2+1)); 
     
     
     %% design -> onsets
@@ -135,18 +121,27 @@ for iSim = nSims:-1:1
     
     %% Apply filters:
     % pre-whiten designmatrix
-    %     WX = W*X;
-    WX = X;
+    WX = W*X;
     % apply high-pass filter
     % apply filtering matrix to data
     KWX = spm_filter(K,WX);
     
-    %% calculate efficiency for all contrasts
-    for iC = 1:numel(listC)
-        currentEff{iC} =  efficiency(KWX,listC{iC});
-    end
+    %% Define contrast(s) of interest
+    C_all_equal = eye(size(X,2));
+    C_tones = [1 -1 0 0 0 0]; % difference in tones
+    C_traces = [0 0 1 -1 0 0];
+    C_shocks = [0 0 0 0 -1 0];    
     
-    listEff{iSim} = currentEff;
+    listC = {C_all_equal, C_tones, C_traces, C_
+    
+    eff_all_equal = efficiency(KWX,C_all_equal);
+    eff_tones = efficiency(KWX,C_tones);
+    eff_traces = efficiency(KWX,C_traces);
+    eff_shocks = efficiency(KWX,C_shocks);
+    
+    
+    
+    listEff{iSim} = eff;
     
 end
 
