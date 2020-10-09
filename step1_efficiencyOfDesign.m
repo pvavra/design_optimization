@@ -1,4 +1,5 @@
-addpath('/opt/spm12')
+ExpandPath();
+
 tic
 %% define efficiency estimation settings
 nSims = 10;

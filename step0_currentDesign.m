@@ -1,4 +1,4 @@
-addpath('/opt/spm12')
+ExpandPath();
 
 %% Define current design
 % Trial:  10s Tone, then 13s nothing, then 2s expected shock (but not
