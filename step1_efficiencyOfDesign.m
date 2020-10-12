@@ -2,11 +2,15 @@ ExpandPath();
 
 tic
 %% define efficiency estimation settings
-nSims = 10;
+nSims = 10000;
+
+
+%% define settings related to ISI
+roundISI2oneSec = 1;
 
 %% Scanner settings
 TR = 1;
-microtime = 340;
+microtime = 40;
 
 % all timings are in seconds
 t_start = 117; % baseline_before_first_trial
@@ -43,16 +47,32 @@ duration_shock = 2;
 % assuming equal nr of presentations for both tones
 nPresentations_perTone = 10;
 
-nTones = 2 * nPresentations_perTone ;
+nTones = 2 * nPresentations_perTone;
 
 %% Define contrast(s) of interest
 C_all_equal = eye(6);
 C_tones = [1 -1 0 0 0 0]; % difference in tones
 C_traces = [0 0 1 -1 0 0];
-C_shocks = [0 0 0 0 -1 0];
+C_shocks = [0 0 0 0 1 -1];
+% tone vs shock
+C_ToneVsShock_1kHz = [1 0 0 0 -1 0];
+C_ToneVsShock_15kHz = [0 1 0 0 0 -1];
+C_Diff_ToneVSShock = [1 -1 0 0 -1 1];
+% tone vs trace
+C_ToneVsTrace_1kHz = [1 0 -1 0 0 0];
+C_ToneVsTrace_15kHz = [0 1 0 -1 0 0];
+C_Diff_ToneVStrace = [1 -1 -1 1 0 0];
+
+
 % store names of contrast
-listC_names = {'mean','tones','traces','shocks'};
-listC = {C_all_equal, C_tones, C_traces, C_shocks};
+listC_names = {'mean','D:tones','D:traces','D:shocks',...
+    '1kHz D:tone-shock','15kHz D:tone-shock', '1-15kHz D:tone-shock', ...
+    '1kHz D:tone-trace','15kHz D:tone-trace', '1-15kHz D:tone-trace'};
+listC = {C_all_equal, C_tones, C_traces, C_shocks, ...
+    C_ToneVsShock_1kHz,C_ToneVsShock_15kHz, C_Diff_ToneVSShock, ...
+    C_ToneVsTrace_1kHz,C_ToneVsTrace_15kHz, C_Diff_ToneVStrace };
+
+assert(length(listC_names) == length(listC));
 
 toc
 
@@ -60,40 +80,49 @@ tic
 nTones = 2 * nPresentations_perTone;
 t = -1 + 1:(TR/microtime):(nScans*TR); t = t(1:(nScans * microtime));
 
-min_aftershock = 5; 
-lambda = 1.5; T = 3; % from Mumford et al., 2014
+min_aftershock = 1;
+lambda = 1.5; T = 3; % from Mumford et al., 2014tile
 
 for iSim = nSims:-1:1
-    
     % decide which stimulus should have which frequency:
     isTone1kHz = ones(1,nPresentations_perTone*2);
     isTone1kHz(1:2:end) = 0; % alternating
     isTone1kHz = logical(isTone1kHz);
-    if iSim > 1 % keep first iteration == original design
-        % shuffle order randomly
-        isTone1kHz = isTone1kHz(randperm(length(isTone1kHz)));
+    
+    
+    
+    switch iSim
+        case 1
+            duration_aftershock = repmat(30,size(isTone1kHz));
+        case 2
+            duration_aftershock = ones(1,length(isTone1kHz));
+        case 3
+            duration_aftershock = ones(1,length(isTone1kHz)*2);
+            isTone1kHz = repmat(isTone1kHz,1,2);
+            
+        otherwise
+            % double the number of trials
+            isTone1kHz = repmat(isTone1kHz,1,2);
+            isTone1kHz = isTone1kHz(randperm(length(isTone1kHz)));
+            % create ITI
+            duration_aftershock = rExponential(length(isTone1kHz),...
+                lambda,T, min_aftershock);
+            
+            if roundISI2oneSec
+                duration_aftershock = round(duration_aftershock);
+            end
+            
+            % round jitter to nearest microtime
+            duration_aftershock = round(duration_aftershock * microtime/TR)*TR/microtime;
     end
-    listIsTone1kHz{iSim} = isTone1kHz;
-    
-    
-    
-    if iSim == 1
-        duration_aftershock = repmat(30,size(isTone1kHz));
-    else
-        duration_aftershock = rExponential(length(isTone1kHz),...
-            lambda,T, min_aftershock);
-        % round jitter to nearest microtime
-        duration_aftershock = round(duration_aftershock * microtime/TR)*TR/microtime;
-    end
-    listDurationAftershock{iSim} = duration_aftershock;
-    % if 0, then tone == 15kHz; if 1, then 1kHz
-    
-    
     ISI = duration_tone + duration_trace + duration_shock + duration_aftershock;
+    
+    listIsTone1kHz{iSim} = isTone1kHz;
+    listDurationAftershock{iSim} = duration_aftershock;
     listISI{iSim} = ISI;
     
-    ISIcummulative = ISI .* (0:((nPresentations_perTone-1)*2+1));
-    
+    ISIcummulative = ISI .* (0:(length(isTone1kHz)-1));
+    listTotalLength{iSim} = ISIcummulative(end);
     
     %% design -> onsets
     onsets_tone_all = t_start + ISIcummulative;
@@ -136,7 +165,7 @@ for iSim = nSims:-1:1
         bold_15kHz_shock; ...
         ]';
     X = downsample(X,microtime); assert(size(X,1) == nScans);
-    
+    listX{iSim} = X;
     %% Apply filters:
     % pre-whiten designmatrix
     %     WX = W*X;
@@ -144,7 +173,7 @@ for iSim = nSims:-1:1
     % apply high-pass filter
     % apply filtering matrix to data
     KWX = spm_filter(K,WX);
-    
+    listKWX{iSim} = KWX;
     %% calculate efficiency for all contrasts
     for iC = 1:numel(listC)
         currentEff{iC} =  efficiency(KWX,listC{iC});

@@ -16,3 +16,11 @@ x = linspace(0,max(s));
 y = exp(-x/lambda);
 plot(x,y)
 
+
+figure(78); clf;
+histogram(round(s),'Normalization','pdf')
+hold on
+title(sprintf('mean: %g',mean(s)))
+
+
+

@@ -11,23 +11,27 @@ for i = 1:length(onsets)
     
     % find the closest timepoint on the microtime scale
     mindiff = min(abs(time - onsets(i)));
-    if mindiff == 0 % perfect match
-        index_start = find(time == onsets(i));        
-        assert(length(index_start) == 1);
-    else
-        mindiff
-        error('not implemented yet :/');
-    end
-    
+    index_start = find(abs(time - onsets(i)) == mindiff);
+    assert(length(index_start) == 1);
+%     if mindiff == 0 % perfect match
+%         index_start = find(time == onsets(i));        
+%         
+%     else
+%         mindiff
+%         error('not implemented yet :/');
+%     end
+%     
     % find corresponding endpoint
-    mindiff = min(abs(time - onsets(i)+duration(i)));
-    if mindiff == 0 % perfect match
-        index_end = find(time == onsets(i)+duration(i));        
-        assert(length(index_end) == 1);
-    else
-        error('not implemented yet :/');
-    end
-    
+    mindiff = min(abs(time - (onsets(i)+duration(i))));
+    index_end = find(abs(time - (onsets(i)+duration(i))) == mindiff);
+    assert(length(index_end) == 1);
+%     if mindiff == 0 % perfect match
+%         index_end = find(time == onsets(i)+duration(i));        
+%         assert(length(index_end) == 1);
+%     else
+%         error('not implemented yet :/');
+%     end
+%     
     
     % which timepoints should have boxcar set to 1
     indexRange = index_start:index_end;
